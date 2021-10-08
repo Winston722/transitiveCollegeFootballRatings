@@ -26,7 +26,7 @@ schedule_webpage <- read_html("https://www.sports-reference.com/cfb/years/2021-s
 
 schedule_raw <- schedule_webpage %>% html_table() %>% data.frame()
 
-pattern <- paste0(c(")",rawToChar(as.raw(160))), collapse = "")
+pattern <- readRDS("pattern.rds")
 anchor_date <- as.Date(cut(today(), breaks='week', start.on.monday = F))
 
 schedule <- 
@@ -58,7 +58,7 @@ team_count %<>% mutate(team = as.character(team))
 schedule <- schedule %>% 
   left_join(y= team_count, by = c("winner" = "team")) %>% 
   left_join(y= team_count, by = c("loser" = "team")) %>% 
-  mutate(game_count = count.x + count.y) |> 
+  mutate(game_count = count.x + count.y) %>% 
   mutate(weight = weight(week_ago = week, game_count = game_count))
 
 teams <- 
@@ -73,7 +73,7 @@ if(exists("team_matrix")){rm(team_matrix)}
 for(i in teams){
   if(exists("team_matrix")){
     team_matrix <- team_matrix %>% 
-      bind_cols((schedule$winner == i) - (schedule$loser == i), .name_repair = "minimal")
+      bind_cols((schedule$winner == i) - (schedule$loser == i))
   } else {
     team_matrix <- data.frame(team = (schedule$winner == i) - (schedule$loser == i))
   }
@@ -91,14 +91,14 @@ ratings <- output$coefficients %>% as.data.frame() %>%
   select(1) %>% filter(row_number() != 1) %>% 
   bind_cols(., team = gsub("`","",rownames(.))) %>% arrange(desc(Estimate)) %>% 
   mutate(power_margin_rating = scale(Estimate, scale = F)) %>% 
-  left_join(team_count, by = "team") |> select(-Estimate)
+  left_join(team_count, by = "team") %>% select(-Estimate)
 
 rownames(ratings) <- NULL
 
 fbs_ratings <- 
   ratings %>% 
   filter(count >= max(team_count$count)*.5) %>% 
-  select(team, power_margin_rating) |> 
+  select(team, power_margin_rating) %>% 
   mutate(power_margin_rating = as.numeric(power_margin_rating))
 
 options(warn=0)
@@ -108,18 +108,18 @@ options(warn=0)
 
 
 ```{r}
-ratings |> View()
+ratings %>% View()
 
 ```
 
 ```{r}
 schedule_post <- 
-  schedule |> left_join(ratings, by = c("winner" = "team")) |> 
-  rename(winner_rating = power_margin_rating) |> 
-  left_join(ratings, by = c("loser" = "team")) |> 
-  rename(loser_rating = power_margin_rating) |> 
-  select(2:5,7:13,15,18) |> 
-  rename(winner_games = count.x, loser_games = count.y) |> 
+  schedule %>% left_join(ratings, by = c("winner" = "team")) %>% 
+  rename(winner_rating = power_margin_rating) %>% 
+  left_join(ratings, by = c("loser" = "team")) %>% 
+  rename(loser_rating = power_margin_rating) %>% 
+  select(winner:loser_pts,true_margin:winner_rating,loser_rating) %>% 
+  rename(winner_games = count.x, loser_games = count.y) %>% 
   mutate(
     loser_rating = 
       ifelse(is.na(loser_rating), winner_rating - true_margin, loser_rating)
@@ -128,14 +128,14 @@ schedule_post <-
     , winner_error = (winner_rating-(loser_rating + true_margin))^2
     , loser_error = (loser_rating-(winner_rating - true_margin))^2)
 
-winners <- schedule_post |> select(winner, winner_error, weight) |> 
+winners <- schedule_post %>% select(winner, winner_error, weight) %>% 
   rename(error = winner_error, team = winner)
-losers <- schedule_post |> select(loser, loser_error, weight) |> 
+losers <- schedule_post %>% select(loser, loser_error, weight) %>% 
   rename(error = loser_error, team = loser)
 
-bind_rows(winners, losers) |> mutate(weighted_error = error*weight) |> 
-  group_by(team) |> summarise(weighted_error = sum(weighted_error)) |>
-  arrange(desc(weighted_error))|> write_csv("errors.csv")
+bind_rows(winners, losers) %>% mutate(weighted_error = error*weight) %>% 
+  group_by(team) %>% summarise(weighted_error = sum(weighted_error)) %>%
+  arrange(desc(weighted_error))%>% write_csv("errors.csv")
 
 ```
 
