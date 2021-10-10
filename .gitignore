@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 errors.csv
+db_password.rds
+.RDS
