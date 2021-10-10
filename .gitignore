@@ -3,5 +3,12 @@
 .RData
 .Ruserdata
 errors.csv
-db_password.rds
+.rds
 .RDS
+ratings_error.rds
+db_password.rds
+githubPAT.rds
+ratings_error.RDS
+error.RDS
+ratings.rds
+schedule.rds
