@@ -4,6 +4,7 @@ library(lubridate)
 library(magrittr)
 library(gitcreds)
 
+#cron editing: https://stackoverflow.com/questions/13418007/can-not-edit-cronjobs-file-in-debian-with-crontab-e
 
 #connecting to GitHub commands
 #readRDS("githubPAT.rds")
@@ -97,6 +98,8 @@ rownames(ratings) <- NULL
 saveRDS(schedule, "schedule.rds")
 saveRDS(ratings, "ratings.rds")
 
+rm(list=ls())
+
 ################################################################################
 schedule <- readRDS("schedule.rds")
 ratings <- readRDS("ratings.rds")
@@ -130,10 +133,13 @@ error <-
 
 saveRDS(error, file = "error.rds")
 
+rm(list=ls())
 ################################################################################
 
 ratings <- readRDS("ratings.rds")
 error <- readRDS("error.rds")
 
-ratings_error <- ratings %>% left_join(error, by = "team")
+ratings_error <- ratings %>% left_join(error, by = "team") %>% 
+  rename(games_played = count)
 saveRDS(ratings_error,"ratings_error.rds")
+rm(list=ls())
