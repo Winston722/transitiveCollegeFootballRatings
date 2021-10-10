@@ -1,4 +1,3 @@
-
 library(rvest)
 library(tidyverse)
 library(lubridate)
@@ -76,22 +75,59 @@ team_matrix %<>% filter((team_matrix %>% select(-weight, -true_margin) %>% rowSu
 
 output <- lm(data = team_matrix, true_margin~. - weight, weights = weight) %>% summary()
 ratings <- output$coefficients %>% as.data.frame() %>% 
-  select(1) %>% filter(row_number() != 1) %>% 
-  bind_cols(., team = gsub("`","",rownames(.))) %>% arrange(desc(Estimate)) %>% 
+  select(1) %>% 
+  bind_cols(., team = gsub("`","",rownames(.))) %>% 
+  mutate(team = gsub("\\(Intercept\\)",teams[length(teams)],team)) %>% 
+  arrange(desc(Estimate)) %>% 
   mutate(power_margin_rating = scale(Estimate, scale = F)) %>% 
-  left_join(team_count, by = "team") %>% select(-Estimate)
-
-rownames(ratings) <- NULL
-
-fbs_ratings <- 
-  ratings %>% 
-  filter(count >= max(team_count$count)*.5) %>% 
-  select(team, power_margin_rating) %>% 
+  left_join(team_count, by = "team") %>% select(-Estimate) %>% 
+  mutate(fbs = count >= max(team_count$count)*.5
+         , as_of_week = max(team_count$count)-1) %>% 
+  select(team, power_margin_rating, fbs, as_of_week, count) %>% 
   mutate(power_margin_rating = as.numeric(power_margin_rating))
 
-options(warn=0)
+rownames(ratings) <- NULL
 
 saveRDS(schedule, "schedule.rds")
 saveRDS(ratings, "ratings.rds")
 
+################################################################################
+schedule <- readRDS("schedule.rds")
+ratings <- readRDS("ratings.rds")
 
+schedule_post <- 
+  schedule %>% left_join(ratings, by = c("winner" = "team")) %>% 
+  rename(winner_rating = power_margin_rating, winner_count = count) %>% 
+  left_join(ratings, by = c("loser" = "team")) %>% 
+  rename(loser_rating = power_margin_rating, loser_count = count) %>% 
+  select(winner, winner_pts, winner_rating, winner_count
+         , loser, loser_pts, loser_rating, loser_count
+         , true_margin, game_count, weight, week
+         ) %>% 
+  mutate(
+    loser_rating = 
+      ifelse(is.na(loser_rating), winner_rating - true_margin, loser_rating)
+    , winner_rating = 
+      ifelse(is.na(winner_rating), true_margin - loser_rating, winner_rating)
+    , winner_error = (winner_rating-(loser_rating + true_margin))^2
+    , loser_error = (loser_rating-(winner_rating - true_margin))^2)
+
+winners <- schedule_post %>% select(winner, winner_error, weight) %>% 
+  rename(error = winner_error, team = winner)
+losers <- schedule_post %>% select(loser, loser_error, weight) %>% 
+  rename(error = loser_error, team = loser)
+
+error <- 
+  bind_rows(winners, losers) %>% mutate(weighted_error = error*weight) %>% 
+  group_by(team) %>% summarise(weighted_error = sum(weighted_error)) %>%
+  arrange(desc(weighted_error))
+
+saveRDS(error, file = "error.rds")
+
+################################################################################
+
+ratings <- readRDS("ratings.rds")
+error <- readRDS("error.rds")
+
+ratings_error <- ratings %>% left_join(error, by = "team")
+saveRDS(ratings_error,"ratings_error.rds")
