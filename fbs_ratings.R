@@ -2,6 +2,12 @@ library(rvest)
 library(tidyverse)
 library(lubridate)
 library(magrittr)
+library(gitcreds)
+
+
+#connecting to GitHub commands
+#readRDS("githubPAT.rds")
+#gitcreds::gitcreds_set()
 
 weight <- function(week_ago, game_count){
   game_weight <- game_count / max(game_count)

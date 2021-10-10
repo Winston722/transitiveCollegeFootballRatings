@@ -26,4 +26,4 @@ error <-
   group_by(team) %>% summarise(weighted_error = sum(weighted_error)) %>%
   arrange(desc(weighted_error))
 
-error %>% write_csv("errors.csv")
+saveRDS(error, file = "error.RDS")
