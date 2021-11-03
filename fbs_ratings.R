@@ -4,7 +4,8 @@ library(lubridate)
 library(magrittr)
 library(gitcreds)
 
-#cron editing: https://stackoverflow.com/questions/13418007/can-not-edit-cronjobs-file-in-debian-with-crontab-e
+#cron editing: https://stackoverflow.com/questions/13418007
+###############/can-not-edit-cronjobs-file-in-debian-with-crontab-e
 
 #connecting to GitHub commands
 #readRDS("githubPAT.rds")
@@ -131,6 +132,30 @@ error <-
   group_by(team) %>% summarise(weighted_error = sum(weighted_error)) %>%
   arrange(desc(weighted_error))
 
+
+schedule_flex <- 
+  schedule %>% left_join(ratings, by = c("winner" = "team")) %>% 
+  rename(winner_rating = power_margin_rating, winner_count = count) %>% 
+  left_join(ratings, by = c("loser" = "team")) %>% 
+  rename(loser_rating = power_margin_rating, loser_count = count) %>% 
+  select(winner, winner_pts, winner_rating, winner_count
+         , loser, loser_pts, loser_rating, loser_count
+         , true_margin, game_count, weight, week
+  ) %>% 
+  mutate(
+    loser_rating = 
+      ifelse(is.na(loser_rating), winner_rating - true_margin, loser_rating)
+    , winner_rating = 
+      ifelse(is.na(winner_rating), true_margin - loser_rating, winner_rating)
+    , winner_error = (winner_rating-(loser_rating + true_margin))^2
+    , loser_error = (loser_rating-(winner_rating - true_margin))^2) %>%
+  mutate(proj_margin = winner_rating - loser_rating
+         , error = winner_error
+         , margin_diff = true_margin - proj_margin) %>% 
+  select(winner, loser, winner_rating, loser_rating
+         , weight, true_margin, proj_margin, margin_diff, error)
+
+saveRDS(schedule_flex, file = "schedule_flex.rds")
 saveRDS(error, file = "error.rds")
 
 rm(list=ls())
@@ -143,3 +168,5 @@ ratings_error <- ratings %>% left_join(error, by = "team") %>%
   rename(games_played = count)
 saveRDS(ratings_error,"ratings_error.rds")
 rm(list=ls())
+
+
