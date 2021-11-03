@@ -3,6 +3,7 @@ library(tidyverse)
 library(lubridate)
 library(magrittr)
 library(gitcreds)
+library(hrbrthemes)
 
 #cron editing: https://stackoverflow.com/questions/13418007
 ###############/can-not-edit-cronjobs-file-in-debian-with-crontab-e

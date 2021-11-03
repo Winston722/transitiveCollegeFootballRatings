@@ -58,7 +58,7 @@ get_rating_graph <- function(subject, ratings, schedule_flex){
     scale_x_continuous(breaks = seq(from = round(subject_rating,0) - 15
                                     , to = round(subject_rating,0) + 15
                                     , by = 2)) + ggtitle(label = subject) + 
-    theme_ipsum_es() + scale_fill_brewer(palette = "Paired")
+    theme_ipsum() + scale_fill_brewer(palette = "Paired")
 }
 
 ################################################################################
@@ -71,4 +71,4 @@ new_method <-
   mutate(new_rating = sapply(team, get_rating, ratings, schedule_flex)) %>% 
   arrange(desc(new_rating))
 
-get_rating_graph("Ohio State", ratings, schedule_flex)
+get_rating_graph("Cincinnati", ratings, schedule_flex)
