@@ -9,7 +9,7 @@ library(hrbrthemes)
 ###############/can-not-edit-cronjobs-file-in-debian-with-crontab-e
 
 #connecting to GitHub commands
-#readRDS("githubPAT.rds")
+#key_get("Github PAT")
 #gitcreds::gitcreds_set()
 
 weight <- function(week_ago, game_count){
